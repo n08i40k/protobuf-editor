@@ -1,0 +1,187 @@
+use std::ops::Range;
+use crate::{ast, lexer};
+
+grammar<'input>(input: &'input str);
+
+extern {
+    type Location = usize;
+    type Error = lexer::LexicalError<'input>;
+
+    enum lexer::Token<'input> {
+        SingleLineComment => lexer::Token::SingleLineComment(<&'input str>),
+        MultiLineComment => lexer::Token::MultiLineComment(<&'input str>),
+
+        Eq => lexer::Token::Eq,
+        Semicolon => lexer::Token::Semicolon,
+        Comma => lexer::Token::Comma,
+        Period => lexer::Token::Period,
+
+        OpenPth => lexer::Token::OpenPth,
+        ClosePth => lexer::Token::ClosePth,
+        OpenBracket => lexer::Token::OpenBracket,
+        CloseBracket => lexer::Token::CloseBracket,
+        OpenBrace => lexer::Token::OpenBrace,
+        CloseBrace => lexer::Token::CloseBrace,
+        OpenAngle => lexer::Token::OpenAngle,
+        CloseAngle => lexer::Token::CloseAngle,
+
+        Boolean => lexer::Token::Boolean(<bool>),
+        Integer => lexer::Token::Integer(<i64>),
+        String => lexer::Token::String(<&'input str>),
+
+        Ident => lexer::Token::Ident(<&'input str>),
+
+        "to" => lexer::Token::To,
+        "syntax" => lexer::Token::Syntax,
+        "option" => lexer::Token::Option,
+        "package" => lexer::Token::Package,
+        "import" => lexer::Token::Import,
+        "message" => lexer::Token::Message,
+        "extend" => lexer::Token::Extend,
+        "enum" => lexer::Token::Enum,
+        "reserved" => lexer::Token::Reserved,
+        "optional" => lexer::Token::Optional,
+        "repeated" => lexer::Token::Repeated,
+        "map" => lexer::Token::Map,
+    }
+}
+
+
+// basic
+
+Range: Range<i64> = <start:Integer> "to" <end:Integer> => start..(end + 1);
+
+Package: &'input str = <l:@L> Ident (Period Ident)* <r:@R> => &input[l..r];
+
+CommaList<T>: Vec<T> = <first:T> <mut rest:(Comma <T>)*> => { rest.insert(0, first); rest };
+ExpressionList<T>: Vec<T> = <v:(<T> Semicolon?)*> => <>;
+
+Block<I, B> = I <Ident> OpenBrace <B> CloseBrace;
+
+// proto
+
+pub GlobalScope: ast::GlobalScope<'input> = ExpressionList<Expr>;
+
+pub Expr: ast::Expr<'input> = {
+    Comment => ast::Expr::Comment(<>),
+
+    // syntax = "proto3";
+    "syntax" Eq <String> Semicolon => ast::Expr::Syntax(<>),
+
+    // package aa.AA;
+    "package" <Package> Semicolon => ast::Expr::Package(<>),
+
+    // import "xxx/yyy/zzz.proto";
+    "import" <String> Semicolon => ast::Expr::Import(<>),
+
+    // option java_package = "xx.yy.zz";
+    OptionLine => ast::Expr::Option(<>),
+
+    // message [ident] { ... }
+    Message => ast::Expr::Message(<>),
+
+    // extend [ident] { ... }
+    Extend => ast::Expr::Extend(<>),
+
+    // enum [ident] { ... }
+    Enum => ast::Expr::Enum(<>),
+};
+
+
+// comment
+
+Comment: ast::Comment<'input> = {
+    SingleLineComment => ast::Comment::single_line(<>),
+    MultiLineComment => ast::Comment::multi_line(<>),
+};
+
+
+// option
+
+OptionKey: &'input str = {
+    <l:@L> OpenPth Period? Package ClosePth <r:@R> => &input[l..r],
+    Package,
+}
+OptionValue: ast::OptionValue<'input> = {
+    Boolean => ast::OptionValue::Boolean(<>),
+    Integer => ast::OptionValue::Integer(<>),
+    Ident => ast::OptionValue::Ident(<>),
+    String => ast::OptionValue::String(<>),
+};
+
+Option: ast::Option<'input> = <ident:OptionKey> Eq <value:OptionValue> => ast::Option { ident, value };
+
+OptionLine = "option" <Option> Semicolon;
+EntryOptionList: Vec<ast::Option<'input>> = <(OpenBracket <CommaList<Option>> CloseBracket)?> => <>.unwrap_or(vec![]);
+
+
+// message [ident] { ... }
+
+pub Message: ast::Message<'input> = Block<"message", MessageEntryList> => ast::Message { ident: <>.0, entries: <>.1 };
+
+MessageEntryList: Vec<ast::MessageEntry<'input>> = ExpressionList<MessageEntry>;
+pub MessageEntry: ast::MessageEntry<'input> = {
+    OptionLine => ast::MessageEntry::Option(<>),
+    Message => ast::MessageEntry::Message(<>),
+    Extend => ast::MessageEntry::Extend(<>),
+    Enum => ast::MessageEntry::Enum(<>),
+    Field => ast::MessageEntry::Field(<>),
+    ReservedIndices => ast::MessageEntry::ReservedIndices(<>),
+    ReservedIdents => ast::MessageEntry::ReservedIdents(<>),
+};
+
+
+// [optional | repeated] [type] [ident] = [index];
+
+pub Field: ast::Field<'input> = {
+    <modifier:FieldModifier>
+    <r#type:FieldType>
+    <ident:Ident>
+    Eq
+    <index:Integer>
+    <options:EntryOptionList>
+    Semicolon
+    => ast::Field { modifier, r#type, ident, index, options }
+};
+
+FieldModifier: ast::FieldModifier = {
+    => ast::FieldModifier::None,
+    "optional" => ast::FieldModifier::Optional,
+    "repeated" => ast::FieldModifier::Repeated,
+};
+
+FieldType = {
+    <l:@L> "map" OpenAngle Ident Comma Ident CloseAngle <r:@R> => &input[l..r],
+    Ident
+};
+
+
+// reserved 2, 3, 4 to 6;
+
+ReservedIndices: Vec<Range<i64>> = "reserved" <CommaList<ReservedRange>> Semicolon;
+
+ReservedRange: Range<i64> = {
+    Integer => <>..(<> + 1),
+    Range
+};
+
+
+// reserved "xd", "xdd";
+
+ReservedIdents: Vec<&'input str> = "reserved" <CommaList<String>> Semicolon;
+
+
+// extend [ident] { ... }
+
+pub Extend: ast::Extend<'input> = "extend" <r#type:Package> OpenBrace <fields:ExpressionList<Field>> CloseBrace => ast::Extend { r#type, fields };
+
+
+// enum [ident] { ... }
+
+pub Enum: ast::Enum<'input> = Block<"enum", EnumEntries> => ast::Enum { ident: <>.0, entries: <>.1 };
+
+EnumEntries: Vec<ast::EnumEntry<'input>> = ExpressionList<EnumEntry>;
+pub EnumEntry: ast::EnumEntry<'input> = {
+    OptionLine => ast::EnumEntry::Option(<>),
+    <ident:Ident> Eq <value:Integer> <options:EntryOptionList> Semicolon => ast::EnumEntry::Pair{ ident, value, options },
+};
