@@ -1,5 +1,5 @@
 use logos::{Logos, Span};
-use std::num::ParseIntError;
+use std::num::{IntErrorKind, ParseIntError};
 
 #[derive(Default, Debug, Clone, PartialEq)]
 pub enum LexicalErrorKind {
@@ -33,18 +33,22 @@ impl<'a> std::fmt::Display for LexicalError<'a> {
 
         let position = format!("line {}, column {}", line, column);
 
-        match self.kind {
+        match &self.kind {
             LexicalErrorKind::InvalidToken => write!(
                 f,
-                "invalid token \"{}\" at {}",
+                "Invalid token \"{}\" at {}",
                 &self.input[self.span.start..self.span.end],
                 position
             )?,
-            LexicalErrorKind::InvalidInteger(_) => write!(
+            LexicalErrorKind::InvalidInteger(inner) => write!(
                 f,
-                "invalid number {} at {}",
+                "Invalid number {} at {}: {}",
                 &self.input[self.span.start..self.span.end],
-                position
+                position,
+                match inner.kind() {
+                    IntErrorKind::PosOverflow | IntErrorKind::NegOverflow => "overflow",
+                    _ => "unknown",
+                }
             )?,
         };
 
