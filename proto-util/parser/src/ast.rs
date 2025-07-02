@@ -44,8 +44,6 @@ pub struct Comment<'a> {
 
 impl<'a> Comment<'a> {
     pub fn single_line(text: &'a str) -> Self {
-        println!("sl: {:?}", text);
-
         Self {
             r#type: CommentType::SingleLine,
             text: text.to_string(),
@@ -54,8 +52,6 @@ impl<'a> Comment<'a> {
     }
 
     pub fn multi_line(text: &'a str) -> Self {
-        println!("ml: {:?}", text);
-
         Self {
             r#type: CommentType::MultiLine,
             text: text.to_string(),
