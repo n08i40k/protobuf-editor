@@ -1,7 +1,7 @@
 syntax = "proto3";
 
 message Message {
-  reserved 2, 6 to 10;
+  reserved 2, 6 to max;
   reserved "sample";
 
   bool first = 1;

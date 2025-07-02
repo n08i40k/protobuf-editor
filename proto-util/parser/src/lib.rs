@@ -87,7 +87,13 @@ mod tests {
             ast::Expr::Message(ast::Message {
                 ident: "Message",
                 entries: vec![
-                    ast::MessageEntry::ReservedIndices(vec![2..3, 6..11]),
+                    ast::MessageEntry::ReservedIndices(vec![
+                        ast::Range::from(2..3),
+                        ast::Range {
+                            start: 6,
+                            end: ast::RangeEnd::Max,
+                        },
+                    ]),
                     ast::MessageEntry::ReservedIdents(vec!["sample"]),
                     ast::MessageEntry::Field(ast::Field {
                         modifier: ast::FieldModifier::None,

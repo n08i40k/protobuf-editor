@@ -113,6 +113,9 @@ pub enum Token<'a> {
     #[token("to")]
     To,
 
+    #[token("max")]
+    Max,
+
     #[token("syntax")]
     Syntax,
 

@@ -1,6 +1,25 @@
-use std::ops::Range;
-
 pub type GlobalScope<'a> = Vec<Expr<'a>>;
+
+#[derive(Debug, PartialEq)]
+pub enum RangeEnd {
+    Integer(i64),
+    Max,
+}
+
+#[derive(Debug, PartialEq)]
+pub struct Range {
+    pub start: i64,
+    pub end: RangeEnd,
+}
+
+impl From<std::ops::Range<i64>> for Range {
+    fn from(range: std::ops::Range<i64>) -> Self {
+        Self {
+            start: range.start,
+            end: RangeEnd::Integer(range.end),
+        }
+    }
+}
 
 #[derive(Debug, PartialEq)]
 pub struct Option<'a> {
@@ -79,7 +98,7 @@ pub enum MessageEntry<'a> {
     Extend(Extend<'a>),
     Enum(Enum<'a>),
 
-    ReservedIndices(Vec<Range<i64>>),
+    ReservedIndices(Vec<Range>),
     ReservedIdents(Vec<&'a str>),
 }
 

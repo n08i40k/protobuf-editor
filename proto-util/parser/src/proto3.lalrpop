@@ -32,6 +32,7 @@ extern {
         Ident => lexer::Token::Ident(<&'input str>),
 
         "to" => lexer::Token::To,
+        "max" => lexer::Token::Max,
         "syntax" => lexer::Token::Syntax,
         "option" => lexer::Token::Option,
         "package" => lexer::Token::Package,
@@ -49,7 +50,15 @@ extern {
 
 // basic
 
-Range: Range<i64> = <start:Integer> "to" <end:Integer> => start..(end + 1);
+RangeEnd: ast::RangeEnd = {
+    Integer => ast::RangeEnd::Integer(<> + 1),
+    "max" => ast::RangeEnd::Max,
+};
+
+Range: ast::Range = {
+    Integer                             => ast::Range { start: <>, end: ast::RangeEnd::Integer(<> + 1) },
+    <start:Integer> "to" <end:RangeEnd> => ast::Range { start, end }
+};
 
 Package: &'input str = <l:@L> Ident (Period Ident)* <r:@R> => &input[l..r];
 
@@ -158,12 +167,7 @@ FieldType = {
 
 // reserved 2, 3, 4 to 6;
 
-ReservedIndices: Vec<Range<i64>> = "reserved" <CommaList<ReservedRange>> Semicolon;
-
-ReservedRange: Range<i64> = {
-    Integer => <>..(<> + 1),
-    Range
-};
+ReservedIndices: Vec<ast::Range> = "reserved" <CommaList<Range>> Semicolon;
 
 
 // reserved "xd", "xdd";
