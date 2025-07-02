@@ -130,6 +130,7 @@ pub Message: ast::Message<'input> = Block<"message", MessageEntryList> => ast::M
 
 MessageEntryList: Vec<ast::MessageEntry<'input>> = ExpressionList<MessageEntry>;
 pub MessageEntry: ast::MessageEntry<'input> = {
+    Comment => ast::MessageEntry::Comment(<>),
     OptionLine => ast::MessageEntry::Option(<>),
     Message => ast::MessageEntry::Message(<>),
     Extend => ast::MessageEntry::Extend(<>),
@@ -177,8 +178,13 @@ ReservedIdents: Vec<&'input str> = "reserved" <CommaList<String>> Semicolon;
 
 // extend [ident] { ... }
 
-pub Extend: ast::Extend<'input> = "extend" <r#type:Package> OpenBrace <fields:ExpressionList<Field>> CloseBrace => ast::Extend { r#type, fields };
+pub Extend: ast::Extend<'input> = "extend" <r#type:Package> OpenBrace <entries:ExtendEntryList> CloseBrace => ast::Extend { r#type, entries };
 
+ExtendEntryList: Vec<ast::ExtendEntry<'input>> = ExpressionList<ExtendEntry>;
+pub ExtendEntry: ast::ExtendEntry<'input> = {
+    Comment => ast::ExtendEntry::Comment(<>),
+    Field => ast::ExtendEntry::Field(<>),
+};
 
 // enum [ident] { ... }
 
@@ -186,6 +192,7 @@ pub Enum: ast::Enum<'input> = Block<"enum", EnumEntries> => ast::Enum { ident: <
 
 EnumEntries: Vec<ast::EnumEntry<'input>> = ExpressionList<EnumEntry>;
 pub EnumEntry: ast::EnumEntry<'input> = {
+    Comment => ast::EnumEntry::Comment(<>),
     OptionLine => ast::EnumEntry::Option(<>),
     <ident:Ident> Eq <value:Integer> <options:EntryOptionList> Semicolon => ast::EnumEntry::Pair{ ident, value, options },
 };

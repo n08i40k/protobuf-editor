@@ -38,24 +38,24 @@ pub enum OptionValue<'a> {
 #[derive(Debug, PartialEq)]
 pub struct Comment<'a> {
     pub r#type: CommentType,
-    pub source: Vec<&'a str>,
-    pub text: String,
+    pub source: &'a str,
+    pub text: &'a str,
 }
 
 impl<'a> Comment<'a> {
-    pub fn single_line(text: &'a str) -> Self {
+    pub fn single_line(source: &'a str) -> Self {
         Self {
             r#type: CommentType::SingleLine,
-            text: text.to_string(),
-            source: vec![&text[2..]],
+            text: source[2..].trim(),
+            source,
         }
     }
 
-    pub fn multi_line(text: &'a str) -> Self {
+    pub fn multi_line(source: &'a str) -> Self {
         Self {
             r#type: CommentType::MultiLine,
-            text: text.to_string(),
-            source: vec![&text[2..text.len() - 2]],
+            text: source[2..source.len() - 2].trim(),
+            source,
         }
     }
 }
@@ -87,6 +87,7 @@ pub struct Message<'a> {
 
 #[derive(Debug, PartialEq)]
 pub enum MessageEntry<'a> {
+    Comment(Comment<'a>),
     Option(Option<'a>),
 
     Field(Field<'a>),
@@ -118,7 +119,13 @@ pub enum FieldModifier {
 #[derive(Debug, PartialEq)]
 pub struct Extend<'a> {
     pub r#type: &'a str,
-    pub fields: Vec<Field<'a>>,
+    pub entries: Vec<ExtendEntry<'a>>,
+}
+
+#[derive(Debug, PartialEq)]
+pub enum ExtendEntry<'a> {
+    Comment(Comment<'a>),
+    Field(Field<'a>),
 }
 
 #[derive(Debug, PartialEq)]
@@ -129,6 +136,7 @@ pub struct Enum<'a> {
 
 #[derive(Debug, PartialEq)]
 pub enum EnumEntry<'a> {
+    Comment(Comment<'a>),
     Option(Option<'a>),
     Pair {
         ident: &'a str,

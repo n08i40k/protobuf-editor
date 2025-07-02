@@ -208,17 +208,17 @@ mod tests {
             }),
             ast::Expr::Extend(ast::Extend {
                 r#type: "google.protobuf.EnumValueOptions",
-                fields: vec![ast::Field {
+                entries: vec![ast::ExtendEntry::Field(ast::Field {
                     modifier: ast::FieldModifier::Optional,
                     r#type: "bool",
                     ident: "own_enum_value",
                     index: 2000,
                     options: vec![],
-                }],
+                })],
             }),
             ast::Expr::Extend(ast::Extend {
                 r#type: "google.protobuf.FieldOptions",
-                fields: vec![ast::Field {
+                entries: vec![ast::ExtendEntry::Field(ast::Field {
                     modifier: ast::FieldModifier::Optional,
                     r#type: "bool",
                     ident: "own_field_value",
@@ -227,7 +227,7 @@ mod tests {
                         ident: "deprecated",
                         value: ast::OptionValue::Boolean(true),
                     }],
-                }],
+                })],
             }),
             ast::Expr::Enum(ast::Enum {
                 ident: "Enum",
@@ -279,6 +279,60 @@ mod tests {
                     }),
                 ],
             }),
+        ];
+
+        assert_eq!(ast, target_ast);
+    }
+
+    #[test]
+    fn comments() {
+        let ast = parse_ast!("comments.proto");
+        let target_ast = vec![
+            ast::Expr::Syntax("proto3"),
+            ast::Expr::Import("google/protobuf/descriptor.proto"),
+            ast::Expr::Comment(ast::Comment::single_line("// single line comment")),
+            ast::Expr::Comment(ast::Comment::single_line("// another single line comment")),
+            ast::Expr::Comment(ast::Comment::multi_line("/* multi\n   line\n   comment */")),
+            ast::Expr::Message(ast::Message {
+                ident: "Message",
+                entries: vec![
+                    ast::MessageEntry::Comment(ast::Comment::single_line("// in message")),
+                    ast::MessageEntry::Field(ast::Field {
+                        modifier: ast::FieldModifier::None,
+                        r#type: "bool",
+                        ident: "var",
+                        index: 1,
+                        options: vec![],
+                    }),
+                    ast::MessageEntry::Comment(ast::Comment::single_line("// right after entry")),
+                    ast::MessageEntry::Comment(ast::Comment::single_line("// at the bottom")),
+                ],
+            }),
+            ast::Expr::Enum(ast::Enum {
+                ident: "Enum",
+                entries: vec![
+                    ast::EnumEntry::Comment(ast::Comment::single_line("// in enum")),
+                    ast::EnumEntry::Pair {
+                        ident: "DEFAULT",
+                        value: 0,
+                        options: vec![],
+                    },
+                ],
+            }),
+            ast::Expr::Extend(ast::Extend {
+                r#type: "google.protobuf.FieldOptions",
+                entries: vec![
+                    ast::ExtendEntry::Comment(ast::Comment::single_line("// in extend")),
+                    ast::ExtendEntry::Field(ast::Field {
+                        modifier: ast::FieldModifier::Optional,
+                        r#type: "bool",
+                        ident: "var",
+                        index: 1,
+                        options: vec![],
+                    }),
+                ],
+            }),
+            ast::Expr::Comment(ast::Comment::single_line("// at the bottom of the file")),
         ];
 
         assert_eq!(ast, target_ast);

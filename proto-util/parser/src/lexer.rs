@@ -61,7 +61,7 @@ fn string_from_lexer<'a>(lex: &mut logos::Lexer<'a, Token<'a>>) -> &'a str {
 #[logos(error = LexicalErrorKind)]
 #[logos(skip r"[\s\t\n\f]+")]
 pub enum Token<'a> {
-    #[regex(r"//.*\n")]
+    #[regex(r"//.*")]
     SingleLineComment(&'a str),
 
     #[regex(r"\/\*[^*]*\*+(?:[^\/*][^*]*\*+)*\/")]
