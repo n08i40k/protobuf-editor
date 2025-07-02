@@ -1,4 +1,3 @@
-use std::ops::Range;
 use crate::{ast, lexer};
 
 grammar<'input>(input: &'input str);
@@ -52,18 +51,37 @@ extern {
 
 // basic
 
+IdentLike: &'input str = {
+    Ident,
+    "to" => "to",
+    "max" => "max",
+    "syntax" => "syntax",
+    "option" => "option",
+    "package" => "package",
+    "import" => "import",
+    "message" => "message",
+    "extend" => "extend",
+    "enum" => "enum",
+    "reserved" => "reserved",
+    "extensions" => "extensions",
+    "optional" => "optional",
+    "required" => "required",
+    "repeated" => "repeated",
+    "map" => "map",
+};
+
 Range: ast::Range = {
     Integer                             => ast::Range::from(<>),
     <start:Integer> "to" <end:Integer>  => ast::Range::from(start..end),
     <start:Integer> "to" <end:"max">    => ast::Range::from((start, ())),
 };
 
-Package: &'input str = <l:@L> Ident (Period Ident)* <r:@R> => &input[l..r];
+Package: &'input str = <l:@L> IdentLike (Period IdentLike)* <r:@R> => &input[l..r];
 
 CommaList<T>: Vec<T> = <first:T> <mut rest:(Comma <T>)*> => { rest.insert(0, first); rest };
 ExpressionList<T>: Vec<T> = <v:(<T> Semicolon?)*> => <>;
 
-Block<I, B> = I <Ident> OpenBrace <B> CloseBrace;
+Block<I, B> = I <IdentLike> OpenBrace <B> CloseBrace;
 
 // proto
 
@@ -145,7 +163,7 @@ pub MessageEntry: ast::MessageEntry<'input> = {
 pub Field: ast::Field<'input> = {
     <modifier:FieldModifier>
     <r#type:FieldType>
-    <ident:Ident>
+    <ident:IdentLike>
     Eq
     <index:Integer>
     <options:EntryOptionList>
@@ -161,8 +179,13 @@ FieldModifier: ast::FieldModifier = {
 };
 
 FieldType = {
-    <l:@L> "map" OpenAngle Ident Comma Ident CloseAngle <r:@R> => &input[l..r],
-    Ident
+    <l:@L> "map" OpenAngle IdentLike Comma IdentLike CloseAngle <r:@R> => &input[l..r],
+    Ident,
+    "to" => "to",
+    "max" => "max",
+    "syntax" => "syntax",
+    "package" => "package",
+    "import" => "import",
 };
 
 
@@ -199,5 +222,5 @@ EnumEntries: Vec<ast::EnumEntry<'input>> = ExpressionList<EnumEntry>;
 pub EnumEntry: ast::EnumEntry<'input> = {
     Comment => ast::EnumEntry::Comment(<>),
     OptionLine => ast::EnumEntry::Option(<>),
-    <ident:Ident> Eq <value:Integer> <options:EntryOptionList> Semicolon => ast::EnumEntry::Pair{ ident, value, options },
+    <ident:IdentLike> Eq <value:Integer> <options:EntryOptionList> Semicolon => ast::EnumEntry::Pair{ ident, value, options },
 };

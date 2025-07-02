@@ -372,4 +372,42 @@ mod tests {
 
         assert_eq!(ast, target_ast);
     }
+
+    #[test]
+    fn keywords() {
+        let ast = parse_ast!("keywords.proto");
+        let target_ast = vec![
+            ast::Expr::Syntax("proto3"),
+            ast::Expr::Message(ast::Message::empty("Ident")),
+            ast::Expr::Message(ast::Message::empty("to")),
+            ast::Expr::Message(ast::Message::empty("max")),
+            ast::Expr::Message(ast::Message::empty("syntax")),
+            ast::Expr::Message(ast::Message::empty("option")),
+            ast::Expr::Message(ast::Message::empty("package")),
+            ast::Expr::Message(ast::Message::empty("import")),
+            ast::Expr::Message(ast::Message::empty("message")),
+            ast::Expr::Message(ast::Message::empty("extend")),
+            ast::Expr::Message(ast::Message::empty("enum")),
+            ast::Expr::Message(ast::Message::empty("reserved")),
+            ast::Expr::Message(ast::Message::empty("extensions")),
+            ast::Expr::Message(ast::Message::empty("optional")),
+            ast::Expr::Message(ast::Message::empty("required")),
+            ast::Expr::Message(ast::Message::empty("repeated")),
+            ast::Expr::Message(ast::Message::empty("map")),
+            ast::Expr::Message(ast::Message {
+                ident: "Message",
+                entries: vec![
+                    ast::MessageEntry::Field(ast::Field::basic("bool", "var1", 1)),
+                    ast::MessageEntry::Field(ast::Field::basic("Ident", "var2", 2)),
+                    ast::MessageEntry::Field(ast::Field::basic("to", "var3", 3)),
+                    ast::MessageEntry::Field(ast::Field::basic("max", "var4", 4)),
+                    ast::MessageEntry::Field(ast::Field::basic("syntax", "var5", 5)),
+                    ast::MessageEntry::Field(ast::Field::basic("package", "var6", 6)),
+                    ast::MessageEntry::Field(ast::Field::basic("import", "var7", 7)),
+                ],
+            }),
+        ];
+
+        assert_eq!(ast, target_ast);
+    }
 }

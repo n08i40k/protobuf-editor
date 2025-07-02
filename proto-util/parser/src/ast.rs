@@ -103,6 +103,15 @@ pub struct Message<'a> {
     pub entries: Vec<MessageEntry<'a>>,
 }
 
+impl<'a> Message<'a> {
+    pub fn empty(name: &'a str) -> Self {
+        Self {
+            ident: name,
+            entries: vec![],
+        }
+    }
+}
+
 #[derive(Debug, PartialEq)]
 pub enum MessageEntry<'a> {
     Comment(Comment<'a>),
@@ -126,6 +135,18 @@ pub struct Field<'a> {
     pub ident: &'a str,
     pub index: i64,
     pub options: Vec<Option<'a>>,
+}
+
+impl<'a> Field<'a> {
+    pub fn basic(r#type: &'a str, ident: &'a str, index: i64) -> Self {
+        Self {
+            modifier: FieldModifier::None,
+            r#type,
+            ident,
+            index,
+            options: vec![],
+        }
+    }
 }
 
 #[derive(Debug, PartialEq)]
