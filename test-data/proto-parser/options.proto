@@ -22,5 +22,10 @@ enum Enum {
 message Message {
   option deprecated = true;
 
-  bool var = 1 [deprecated = true, (own_field_value) = false];
+  optional bool var = 1 [
+    deprecated = true,
+    (own_field_value) = false,
+    edition_defaults = { edition: EDITION_PROTO2, value: "true" },
+    edition_defaults = { edition: EDITION_PROTO3, value: "false" }
+  ];
 }

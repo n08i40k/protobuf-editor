@@ -196,12 +196,12 @@ mod tests {
             ast::Expr::Syntax("proto3"),
             ast::Expr::Import("google/protobuf/descriptor.proto"),
             ast::Expr::Option(ast::Option {
-                ident: "java_multiple_files",
-                value: ast::OptionValue::Boolean(true),
+                key: "java_multiple_files",
+                value: ast::MapValue::Boolean(true),
             }),
             ast::Expr::Option(ast::Option {
-                ident: "java_package",
-                value: ast::OptionValue::String("xd.xd"),
+                key: "java_package",
+                value: ast::MapValue::String("xd.xd"),
             }),
             ast::Expr::Extend(ast::Extend {
                 r#type: "google.protobuf.EnumValueOptions",
@@ -221,8 +221,8 @@ mod tests {
                     ident: "own_field_value",
                     index: 2000,
                     options: vec![ast::Option {
-                        ident: "deprecated",
-                        value: ast::OptionValue::Boolean(true),
+                        key: "deprecated",
+                        value: ast::MapValue::Boolean(true),
                     }],
                 })],
             }),
@@ -230,23 +230,23 @@ mod tests {
                 ident: "Enum",
                 entries: vec![
                     ast::EnumEntry::Option(ast::Option {
-                        ident: "allow_alias",
-                        value: ast::OptionValue::Boolean(true),
+                        key: "allow_alias",
+                        value: ast::MapValue::Boolean(true),
                     }),
                     ast::EnumEntry::Pair {
                         ident: "FIRST",
                         value: 0,
                         options: vec![ast::Option {
-                            ident: "deprecated",
-                            value: ast::OptionValue::Boolean(true),
+                            key: "deprecated",
+                            value: ast::MapValue::Boolean(true),
                         }],
                     },
                     ast::EnumEntry::Pair {
                         ident: "SECOND",
                         value: 0,
                         options: vec![ast::Option {
-                            ident: "(own_enum_value)",
-                            value: ast::OptionValue::Boolean(true),
+                            key: "(own_enum_value)",
+                            value: ast::MapValue::Boolean(true),
                         }],
                     },
                 ],
@@ -255,22 +255,36 @@ mod tests {
                 ident: "Message",
                 entries: vec![
                     ast::MessageEntry::Option(ast::Option {
-                        ident: "deprecated",
-                        value: ast::OptionValue::Boolean(true),
+                        key: "deprecated",
+                        value: ast::MapValue::Boolean(true),
                     }),
                     ast::MessageEntry::Field(ast::Field {
-                        modifier: ast::FieldModifier::None,
+                        modifier: ast::FieldModifier::Optional,
                         r#type: "bool",
                         ident: "var",
                         index: 1,
                         options: vec![
                             ast::Option {
-                                ident: "deprecated",
-                                value: ast::OptionValue::Boolean(true),
+                                key: "deprecated",
+                                value: ast::MapValue::Boolean(true),
                             },
                             ast::Option {
-                                ident: "(own_field_value)",
-                                value: ast::OptionValue::Boolean(false),
+                                key: "(own_field_value)",
+                                value: ast::MapValue::Boolean(false),
+                            },
+                            ast::Option {
+                                key: "edition_defaults",
+                                value: ast::MapValue::Map(ast::JSONLikeMap::from([
+                                    ("edition", ast::MapValue::Ident("EDITION_PROTO2")),
+                                    ("value", ast::MapValue::String("true")),
+                                ])),
+                            },
+                            ast::Option {
+                                key: "edition_defaults",
+                                value: ast::MapValue::Map(ast::JSONLikeMap::from([
+                                    ("edition", ast::MapValue::Ident("EDITION_PROTO3")),
+                                    ("value", ast::MapValue::String("false")),
+                                ])),
                             },
                         ],
                     }),

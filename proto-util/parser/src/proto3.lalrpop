@@ -11,6 +11,7 @@ extern {
         MultiLineComment => lexer::Token::MultiLineComment(<&'input str>),
 
         Eq => lexer::Token::Eq,
+        Colon => lexer::Token::Colon,
         Semicolon => lexer::Token::Semicolon,
         Comma => lexer::Token::Comma,
         Period => lexer::Token::Period,
@@ -79,6 +80,8 @@ Range: ast::Range = {
 Package: &'input str = <l:@L> IdentLike (Period IdentLike)* <r:@R> => &input[l..r];
 
 CommaList<T>: Vec<T> = <first:T> <mut rest:(Comma <T>)*> => { rest.insert(0, first); rest };
+TrailingCommaList<T>: Vec<T> = <first:T> <mut rest:(Comma <T>)*> Comma? => { rest.insert(0, first); rest };
+
 ExpressionList<T>: Vec<T> = <v:(<T> Semicolon?)*> => <>;
 
 Block<I, B> = I <IdentLike> OpenBrace <B> CloseBrace;
@@ -123,18 +126,24 @@ Comment: ast::Comment<'input> = {
 
 // option
 
+Option: ast::Option<'input> = <key:OptionKey> Eq <value:MapValue> => ast::Option { key, value };
+
 OptionKey: &'input str = {
     <l:@L> OpenPth Period? Package ClosePth <r:@R> => &input[l..r],
     Package,
 }
-OptionValue: ast::OptionValue<'input> = {
-    Boolean => ast::OptionValue::Boolean(<>),
-    Integer => ast::OptionValue::Integer(<>),
-    Ident => ast::OptionValue::Ident(<>),
-    String => ast::OptionValue::String(<>),
-};
 
-Option: ast::Option<'input> = <ident:OptionKey> Eq <value:OptionValue> => ast::Option { ident, value };
+JSONLikeMap: ast::JSONLikeMap<'input>
+    = OpenBrace <TrailingCommaList<(<Ident> Colon <MapValue>)>> CloseBrace
+    => ast::JSONLikeMap::<'input>::from_iter(<>);
+
+MapValue: ast::MapValue<'input> = {
+    Boolean => ast::MapValue::Boolean(<>),
+    Integer => ast::MapValue::Integer(<>),
+    Ident => ast::MapValue::Ident(<>),
+    String => ast::MapValue::String(<>),
+    JSONLikeMap => ast::MapValue::Map(<>),
+};
 
 OptionLine = "option" <Option> Semicolon;
 EntryOptionList: Vec<ast::Option<'input>> = <(OpenBracket <CommaList<Option>> CloseBracket)?> => <>.unwrap_or(vec![]);

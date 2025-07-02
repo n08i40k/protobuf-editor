@@ -74,6 +74,9 @@ pub enum Token<'a> {
     #[token("=")]
     Eq,
 
+    #[token(":")]
+    Colon,
+
     #[token(";")]
     Semicolon,
 

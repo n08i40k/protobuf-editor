@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 pub type GlobalScope<'a> = Vec<Expr<'a>>;
 
 #[derive(Debug, PartialEq)]
@@ -40,17 +42,20 @@ impl From<(i64, ())> for Range {
 }
 
 #[derive(Debug, PartialEq)]
-pub struct Option<'a> {
-    pub ident: &'a str,
-    pub value: OptionValue<'a>,
-}
-
-#[derive(Debug, PartialEq)]
-pub enum OptionValue<'a> {
+pub enum MapValue<'a> {
     Boolean(bool),
     Integer(i64),
     Ident(&'a str),
     String(&'a str),
+    Map(JSONLikeMap<'a>),
+}
+
+pub type JSONLikeMap<'a> = HashMap<&'a str, MapValue<'a>>;
+
+#[derive(Debug, PartialEq)]
+pub struct Option<'a> {
+    pub key: &'a str,
+    pub value: MapValue<'a>,
 }
 
 #[derive(Debug, PartialEq)]
