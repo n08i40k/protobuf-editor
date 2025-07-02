@@ -12,11 +12,29 @@ pub struct Range {
     pub end: RangeEnd,
 }
 
+impl From<i64> for Range {
+    fn from(start: i64) -> Self {
+        Self {
+            start,
+            end: RangeEnd::Integer(start + 1),
+        }
+    }
+}
+
 impl From<std::ops::Range<i64>> for Range {
     fn from(range: std::ops::Range<i64>) -> Self {
         Self {
             start: range.start,
-            end: RangeEnd::Integer(range.end),
+            end: RangeEnd::Integer(range.end + 1),
+        }
+    }
+}
+
+impl From<(i64, ())> for Range {
+    fn from(range: (i64, ())) -> Self {
+        Self {
+            start: range.0,
+            end: RangeEnd::Max,
         }
     }
 }
@@ -97,6 +115,8 @@ pub enum MessageEntry<'a> {
 
     ReservedIndices(Vec<Range>),
     ReservedIdents(Vec<&'a str>),
+
+    Extensions(Vec<Range>),
 }
 
 #[derive(Debug, PartialEq)]

@@ -145,6 +145,9 @@ pub enum Token<'a> {
     #[token("reserved")]
     Reserved,
 
+    #[token("extensions")]
+    Extensions,
+
     #[token("optional")]
     Optional,
 

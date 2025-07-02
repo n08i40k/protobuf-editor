@@ -41,6 +41,7 @@ extern {
         "extend" => lexer::Token::Extend,
         "enum" => lexer::Token::Enum,
         "reserved" => lexer::Token::Reserved,
+        "extensions" => lexer::Token::Extensions,
         "optional" => lexer::Token::Optional,
         "repeated" => lexer::Token::Repeated,
         "map" => lexer::Token::Map,
@@ -50,14 +51,10 @@ extern {
 
 // basic
 
-RangeEnd: ast::RangeEnd = {
-    Integer => ast::RangeEnd::Integer(<> + 1),
-    "max" => ast::RangeEnd::Max,
-};
-
 Range: ast::Range = {
-    Integer                             => ast::Range { start: <>, end: ast::RangeEnd::Integer(<> + 1) },
-    <start:Integer> "to" <end:RangeEnd> => ast::Range { start, end }
+    Integer                             => ast::Range::from(<>),
+    <start:Integer> "to" <end:Integer>  => ast::Range::from(start..end),
+    <start:Integer> "to" <end:"max">    => ast::Range::from((start, ())),
 };
 
 Package: &'input str = <l:@L> Ident (Period Ident)* <r:@R> => &input[l..r];
@@ -138,6 +135,7 @@ pub MessageEntry: ast::MessageEntry<'input> = {
     Field => ast::MessageEntry::Field(<>),
     ReservedIndices => ast::MessageEntry::ReservedIndices(<>),
     ReservedIdents => ast::MessageEntry::ReservedIdents(<>),
+    Extensions => ast::MessageEntry::Extensions(<>),
 };
 
 
@@ -164,6 +162,11 @@ FieldType = {
     <l:@L> "map" OpenAngle Ident Comma Ident CloseAngle <r:@R> => &input[l..r],
     Ident
 };
+
+
+// extensions 1000 to max;
+
+Extensions: Vec<ast::Range> = "extensions" <CommaList<Range>> Semicolon;
 
 
 // reserved 2, 3, 4 to 6;

@@ -88,11 +88,8 @@ mod tests {
                 ident: "Message",
                 entries: vec![
                     ast::MessageEntry::ReservedIndices(vec![
-                        ast::Range::from(2..3),
-                        ast::Range {
-                            start: 6,
-                            end: ast::RangeEnd::Max,
-                        },
+                        ast::Range::from(2),
+                        ast::Range::from((6, ())),
                     ]),
                     ast::MessageEntry::ReservedIdents(vec!["sample"]),
                     ast::MessageEntry::Field(ast::Field {
@@ -333,6 +330,24 @@ mod tests {
                 ],
             }),
             ast::Expr::Comment(ast::Comment::single_line("// at the bottom of the file")),
+        ];
+
+        assert_eq!(ast, target_ast);
+    }
+
+    #[test]
+    fn extensions() {
+        let ast = parse_ast!("extensions.proto");
+        let target_ast = vec![
+            ast::Expr::Syntax("proto2"),
+            ast::Expr::Message(ast::Message {
+                ident: "Message",
+                entries: vec![ast::MessageEntry::Extensions(vec![
+                    ast::Range::from(1),
+                    ast::Range::from(2..5),
+                    ast::Range::from((6, ())),
+                ])],
+            }),
         ];
 
         assert_eq!(ast, target_ast);
