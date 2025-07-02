@@ -43,6 +43,7 @@ extern {
         "reserved" => lexer::Token::Reserved,
         "extensions" => lexer::Token::Extensions,
         "optional" => lexer::Token::Optional,
+        "required" => lexer::Token::Required,
         "repeated" => lexer::Token::Repeated,
         "map" => lexer::Token::Map,
     }
@@ -155,6 +156,7 @@ pub Field: ast::Field<'input> = {
 FieldModifier: ast::FieldModifier = {
     => ast::FieldModifier::None,
     "optional" => ast::FieldModifier::Optional,
+    "required" => ast::FieldModifier::Required,
     "repeated" => ast::FieldModifier::Repeated,
 };
 

@@ -151,6 +151,9 @@ pub enum Token<'a> {
     #[token("optional")]
     Optional,
 
+    #[token("required")]
+    Required,
+
     #[token("repeated")]
     Repeated,
 

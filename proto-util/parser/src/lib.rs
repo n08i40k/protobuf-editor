@@ -352,4 +352,24 @@ mod tests {
 
         assert_eq!(ast, target_ast);
     }
+
+    #[test]
+    fn required() {
+        let ast = parse_ast!("required.proto");
+        let target_ast = vec![
+            ast::Expr::Syntax("proto2"),
+            ast::Expr::Message(ast::Message {
+                ident: "Message",
+                entries: vec![ast::MessageEntry::Field(ast::Field {
+                    modifier: ast::FieldModifier::Required,
+                    r#type: "bool",
+                    ident: "var",
+                    index: 1,
+                    options: vec![],
+                })],
+            }),
+        ];
+
+        assert_eq!(ast, target_ast);
+    }
 }

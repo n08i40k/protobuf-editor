@@ -132,6 +132,7 @@ pub struct Field<'a> {
 pub enum FieldModifier {
     None,
     Optional,
+    Required,
     Repeated,
 }
 
