@@ -116,7 +116,7 @@ TrailingCommaList<T>: Vec<T> = <first:T> <mut rest:(Comma <T>)*> Comma? => { res
 
 ExpressionList<T>: Vec<T> = <v:(<T> Semicolon?)*> => <>;
 
-Block<I, B> = I <IdentLike> OpenBrace <B> CloseBrace;
+Block<K, I, E> = K <I> OpenBrace <ExpressionList<E>> CloseBrace;
 
 // proto
 
@@ -183,9 +183,8 @@ EntryOptionList: Vec<ast::Option<'input>> = <(OpenBracket <CommaList<Option>> Cl
 
 // message [ident] { ... }
 
-pub Message: ast::Message<'input> = Block<"message", MessageEntryList> => ast::Message { ident: <>.0, entries: <>.1 };
+pub Message: ast::Message<'input> = Block<"message", IdentLike, MessageEntry> => ast::Message { ident: <>.0, entries: <>.1 };
 
-MessageEntryList: Vec<ast::MessageEntry<'input>> = ExpressionList<MessageEntry>;
 pub MessageEntry: ast::MessageEntry<'input> = {
     Comment => ast::MessageEntry::Comment(<>),
     OptionLine => ast::MessageEntry::Option(<>),
@@ -249,9 +248,8 @@ ReservedIdents: Vec<&'input str> = "reserved" <CommaList<String>> Semicolon;
 
 // extend [ident] { ... }
 
-pub Extend: ast::Extend<'input> = "extend" <r#type:LPath> OpenBrace <entries:ExtendEntryList> CloseBrace => ast::Extend { r#type, entries };
+pub Extend: ast::Extend<'input> = Block<"extend", LPath, ExtendEntry> => ast::Extend { r#type: <>.0, entries: <>.1 };
 
-ExtendEntryList: Vec<ast::ExtendEntry<'input>> = ExpressionList<ExtendEntry>;
 pub ExtendEntry: ast::ExtendEntry<'input> = {
     Comment => ast::ExtendEntry::Comment(<>),
     Field => ast::ExtendEntry::Field(<>),
@@ -259,9 +257,8 @@ pub ExtendEntry: ast::ExtendEntry<'input> = {
 
 // enum [ident] { ... }
 
-pub Enum: ast::Enum<'input> = Block<"enum", EnumEntries> => ast::Enum { ident: <>.0, entries: <>.1 };
+pub Enum: ast::Enum<'input> = Block<"enum", IdentLike, EnumEntry> => ast::Enum { ident: <>.0, entries: <>.1 };
 
-EnumEntries: Vec<ast::EnumEntry<'input>> = ExpressionList<EnumEntry>;
 pub EnumEntry: ast::EnumEntry<'input> = {
     Comment => ast::EnumEntry::Comment(<>),
     OptionLine => ast::EnumEntry::Option(<>),
