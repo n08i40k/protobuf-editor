@@ -50,16 +50,21 @@ extern {
 }
 
 
-// basic
+// Protocol Buffers 2 and 3 keywords.
 
-IdentLike: &'input str = {
-    Ident,
+#[inline]
+Keyword: &'input str = { FieldTypeKeyword, NonFieldTypeKeyword };
+
+FieldTypeKeyword: &'input str = {
     "to" => "to",
     "max" => "max",
     "syntax" => "syntax",
-    "option" => "option",
     "package" => "package",
     "import" => "import",
+};
+
+NonFieldTypeKeyword: &'input str = {
+    "option" => "option",
     "message" => "message",
     "extend" => "extend",
     "enum" => "enum",
@@ -71,13 +76,40 @@ IdentLike: &'input str = {
     "map" => "map",
 };
 
+#[inline]
+IdentLike = { Keyword, Ident };
+
+
+// [.]optional.package
+
+#[inline]
+Path = { SafePath, UnsafePath }
+
+#[inline]
+LPath = { SafeLPath, UnsafePath };
+
+// Use-case         Unsafe  Safe
+// ident.ident               ++
+// keyword.ident      ++
+UnsafePath: &'input str = <l:@L> Keyword  (Period IdentLike)* <r:@R> => &input[l..r];
+  SafePath: &'input str = <l:@L> Ident    (Period IdentLike)* <r:@R> => &input[l..r];
+
+//                  Unsafe  Safe
+//    ident.ident            ++
+// .  ident.ident            ++
+//   keyword.ident    ++
+// . keyword.ident           ++
+#[inline] UnsafeLPath : &'input str = UnsafePath;
+            SafeLPath : &'input str = {
+    <l:@L> Period   UnsafePath  <r:@R> => &input[l..r],
+    <l:@L> Period?  SafePath    <r:@R> => &input[l..r],
+};
+
 Range: ast::Range = {
     Integer                             => ast::Range::from(<>),
     <start:Integer> "to" <end:Integer>  => ast::Range::from(start..end),
     <start:Integer> "to" <end:"max">    => ast::Range::from((start, ())),
 };
-
-Package: &'input str = <l:@L> IdentLike (Period IdentLike)* <r:@R> => &input[l..r];
 
 CommaList<T>: Vec<T> = <first:T> <mut rest:(Comma <T>)*> => { rest.insert(0, first); rest };
 TrailingCommaList<T>: Vec<T> = <first:T> <mut rest:(Comma <T>)*> Comma? => { rest.insert(0, first); rest };
@@ -97,7 +129,7 @@ pub Expr: ast::Expr<'input> = {
     "syntax" Eq <String> Semicolon => ast::Expr::Syntax(<>),
 
     // package aa.AA;
-    "package" <Package> Semicolon => ast::Expr::Package(<>),
+    "package" <Path> Semicolon => ast::Expr::Package(<>),
 
     // import "xxx/yyy/zzz.proto";
     "import" <String> Semicolon => ast::Expr::Import(<>),
@@ -129,8 +161,8 @@ Comment: ast::Comment<'input> = {
 Option: ast::Option<'input> = <key:OptionKey> Eq <value:MapValue> => ast::Option { key, value };
 
 OptionKey: &'input str = {
-    <l:@L> OpenPth Period? Package ClosePth <r:@R> => &input[l..r],
-    Package,
+    <l:@L> OpenPth LPath ClosePth <r:@R> => &input[l..r],
+    Path,
 }
 
 JSONLikeMap: ast::JSONLikeMap<'input>
@@ -168,34 +200,36 @@ pub MessageEntry: ast::MessageEntry<'input> = {
 
 
 // [optional | repeated] [type] [ident] = [index];
-
 pub Field: ast::Field<'input> = {
     <modifier:FieldModifier>
-    <r#type:FieldType>
-    <ident:IdentLike>
-    Eq
-    <index:Integer>
-    <options:EntryOptionList>
-    Semicolon
-    => ast::Field { modifier, r#type, ident, index, options }
+
+    <r#type:UnsafeFieldType>    <ident:IdentLike> Eq <index:Integer> <options:EntryOptionList> Semicolon
+        => ast::Field { modifier, r#type, ident, index, options },
+
+    <r#type:SafeFieldType>      <ident:IdentLike> Eq <index:Integer> <options:EntryOptionList> Semicolon
+        => ast::Field { modifier: ast::FieldModifier::None, r#type, ident, index, options },
 };
 
 FieldModifier: ast::FieldModifier = {
-    => ast::FieldModifier::None,
     "optional" => ast::FieldModifier::Optional,
     "required" => ast::FieldModifier::Required,
     "repeated" => ast::FieldModifier::Repeated,
 };
 
-FieldType = {
-    <l:@L> "map" OpenAngle IdentLike Comma IdentLike CloseAngle <r:@R> => &input[l..r],
-    Ident,
-    "to" => "to",
-    "max" => "max",
-    "syntax" => "syntax",
-    "package" => "package",
-    "import" => "import",
-};
+
+//           Use-case              SafeFieldType  UnsafeFieldType
+// [mod]    path            ...         N/A             +
+// [mod]   .path            ...         N/A             +
+// [mod]    keyword.path    ...         N/A             +
+// [mod]   .keyword.path    ...         N/A             +
+//          path            ...          +             N/A
+//         .path            ...          +             N/A
+//          keyword.path    ...                        N/A
+//         .keyword.path    ...          +             N/A
+#[inline] SafeFieldType   : &'input str = { MapFieldType, SafeLPath, FieldTypeKeyword   };
+#[inline] UnsafeFieldType : &'input str = { MapFieldType, LPath                         };
+
+MapFieldType: &'input str = <l:@L> "map" OpenAngle Ident Comma IdentLike CloseAngle <r:@R> => &input[l..r];
 
 
 // extensions 1000 to max;
@@ -215,7 +249,7 @@ ReservedIdents: Vec<&'input str> = "reserved" <CommaList<String>> Semicolon;
 
 // extend [ident] { ... }
 
-pub Extend: ast::Extend<'input> = "extend" <r#type:Package> OpenBrace <entries:ExtendEntryList> CloseBrace => ast::Extend { r#type, entries };
+pub Extend: ast::Extend<'input> = "extend" <r#type:LPath> OpenBrace <entries:ExtendEntryList> CloseBrace => ast::Extend { r#type, entries };
 
 ExtendEntryList: Vec<ast::ExtendEntry<'input>> = ExpressionList<ExtendEntry>;
 pub ExtendEntry: ast::ExtendEntry<'input> = {
