@@ -1,6 +1,10 @@
 use lalrpop_util::lalrpop_mod;
 
-lalrpop_mod!(pub proto3);
+lalrpop_mod!(
+    #[allow(clippy::ptr_arg)]
+    #[rustfmt::skip]
+    pub proto
+);
 
 pub mod ast;
 pub mod lexer;
@@ -8,14 +12,14 @@ pub mod lexer;
 #[cfg(test)]
 mod tests {
     use crate::ast;
-    use crate::{lexer, proto3};
+    use crate::{lexer, proto};
 
     macro_rules! parse_ast {
         ($file:literal) => {{
             let data = include_str!(concat!("../../../test-data/proto-parser/", $file));
 
             let lexer = lexer::Lexer::new(&data);
-            let parser = proto3::GlobalScopeParser::new();
+            let parser = proto::FileParser::new();
 
             match parser.parse(data, lexer) {
                 Err(error) => panic!("{}", error),
@@ -33,7 +37,7 @@ mod tests {
     #[test]
     fn syntax() {
         let ast = parse_ast!("syntax.proto");
-        let target_ast = vec![ast::Expr::Syntax("proto3")];
+        let target_ast = vec![ast::FileEntry::Syntax("proto3")];
 
         assert_eq!(ast, target_ast);
     }
@@ -41,7 +45,10 @@ mod tests {
     #[test]
     fn package_simple() {
         let ast = parse_ast!("package-simple.proto");
-        let target_ast = vec![ast::Expr::Syntax("proto3"), ast::Expr::Package("mypkg")];
+        let target_ast = vec![
+            ast::FileEntry::Syntax("proto3"),
+            ast::FileEntry::Package("mypkg"),
+        ];
 
         assert_eq!(ast, target_ast);
     }
@@ -49,7 +56,10 @@ mod tests {
     #[test]
     fn package_complex() {
         let ast = parse_ast!("package-complex.proto");
-        let target_ast = vec![ast::Expr::Syntax("proto3"), ast::Expr::Package("my.pkg")];
+        let target_ast = vec![
+            ast::FileEntry::Syntax("proto3"),
+            ast::FileEntry::Package("my.pkg"),
+        ];
 
         assert_eq!(ast, target_ast);
     }
@@ -58,8 +68,8 @@ mod tests {
     fn import() {
         let ast = parse_ast!("import.proto");
         let target_ast = vec![
-            ast::Expr::Syntax("proto3"),
-            ast::Expr::Import("google/protobuf/any.proto"),
+            ast::FileEntry::Syntax("proto3"),
+            ast::FileEntry::Import("google/protobuf/any.proto"),
         ];
 
         assert_eq!(ast, target_ast);
@@ -69,8 +79,8 @@ mod tests {
     fn message_empty() {
         let ast = parse_ast!("message-empty.proto");
         let target_ast = vec![
-            ast::Expr::Syntax("proto3"),
-            ast::Expr::Message(ast::Message {
+            ast::FileEntry::Syntax("proto3"),
+            ast::FileEntry::Message(ast::Message {
                 ident: "Empty",
                 entries: vec![],
             }),
@@ -83,8 +93,8 @@ mod tests {
     fn message() {
         let ast = parse_ast!("message.proto");
         let target_ast = vec![
-            ast::Expr::Syntax("proto3"),
-            ast::Expr::Message(ast::Message {
+            ast::FileEntry::Syntax("proto3"),
+            ast::FileEntry::Message(ast::Message {
                 ident: "Message",
                 entries: vec![
                     ast::MessageEntry::ReservedIndices(vec![
@@ -131,8 +141,8 @@ mod tests {
     fn message_inner() {
         let ast = parse_ast!("message-inner.proto");
         let target_ast = vec![
-            ast::Expr::Syntax("proto3"),
-            ast::Expr::Message(ast::Message {
+            ast::FileEntry::Syntax("proto3"),
+            ast::FileEntry::Message(ast::Message {
                 ident: "Parent",
                 entries: vec![
                     ast::MessageEntry::Message(ast::Message {
@@ -163,8 +173,8 @@ mod tests {
     fn r#enum() {
         let ast = parse_ast!("enum.proto");
         let target_ast = vec![
-            ast::Expr::Syntax("proto3"),
-            ast::Expr::Enum(ast::Enum {
+            ast::FileEntry::Syntax("proto3"),
+            ast::FileEntry::Enum(ast::Enum {
                 ident: "Enum",
                 entries: vec![
                     ast::EnumEntry::Pair {
@@ -193,17 +203,17 @@ mod tests {
     fn options() {
         let ast = parse_ast!("options.proto");
         let target_ast = vec![
-            ast::Expr::Syntax("proto3"),
-            ast::Expr::Import("google/protobuf/descriptor.proto"),
-            ast::Expr::Option(ast::Option {
+            ast::FileEntry::Syntax("proto3"),
+            ast::FileEntry::Import("google/protobuf/descriptor.proto"),
+            ast::FileEntry::Option(ast::Option {
                 key: "java_multiple_files",
                 value: ast::MapValue::Boolean(true),
             }),
-            ast::Expr::Option(ast::Option {
+            ast::FileEntry::Option(ast::Option {
                 key: "java_package",
                 value: ast::MapValue::String("xd.xd"),
             }),
-            ast::Expr::Extend(ast::Extend {
+            ast::FileEntry::Extend(ast::Extend {
                 r#type: "google.protobuf.EnumValueOptions",
                 entries: vec![ast::ExtendEntry::Field(ast::Field {
                     modifier: ast::FieldModifier::Optional,
@@ -213,7 +223,7 @@ mod tests {
                     options: vec![],
                 })],
             }),
-            ast::Expr::Extend(ast::Extend {
+            ast::FileEntry::Extend(ast::Extend {
                 r#type: "google.protobuf.FieldOptions",
                 entries: vec![ast::ExtendEntry::Field(ast::Field {
                     modifier: ast::FieldModifier::Optional,
@@ -226,7 +236,7 @@ mod tests {
                     }],
                 })],
             }),
-            ast::Expr::Enum(ast::Enum {
+            ast::FileEntry::Enum(ast::Enum {
                 ident: "Enum",
                 entries: vec![
                     ast::EnumEntry::Option(ast::Option {
@@ -251,7 +261,7 @@ mod tests {
                     },
                 ],
             }),
-            ast::Expr::Message(ast::Message {
+            ast::FileEntry::Message(ast::Message {
                 ident: "Message",
                 entries: vec![
                     ast::MessageEntry::Option(ast::Option {
@@ -299,12 +309,12 @@ mod tests {
     fn comments() {
         let ast = parse_ast!("comments.proto");
         let target_ast = vec![
-            ast::Expr::Syntax("proto3"),
-            ast::Expr::Import("google/protobuf/descriptor.proto"),
-            ast::Expr::Comment(ast::Comment::single_line("// single line comment")),
-            ast::Expr::Comment(ast::Comment::single_line("// another single line comment")),
-            ast::Expr::Comment(ast::Comment::multi_line("/* multi\n   line\n   comment */")),
-            ast::Expr::Message(ast::Message {
+            ast::FileEntry::Syntax("proto3"),
+            ast::FileEntry::Import("google/protobuf/descriptor.proto"),
+            ast::FileEntry::Comment(ast::Comment::single_line("// single line comment")),
+            ast::FileEntry::Comment(ast::Comment::single_line("// another single line comment")),
+            ast::FileEntry::Comment(ast::Comment::multi_line("/* multi\n   line\n   comment */")),
+            ast::FileEntry::Message(ast::Message {
                 ident: "Message",
                 entries: vec![
                     ast::MessageEntry::Comment(ast::Comment::single_line("// in message")),
@@ -319,7 +329,7 @@ mod tests {
                     ast::MessageEntry::Comment(ast::Comment::single_line("// at the bottom")),
                 ],
             }),
-            ast::Expr::Enum(ast::Enum {
+            ast::FileEntry::Enum(ast::Enum {
                 ident: "Enum",
                 entries: vec![
                     ast::EnumEntry::Comment(ast::Comment::single_line("// in enum")),
@@ -330,7 +340,7 @@ mod tests {
                     },
                 ],
             }),
-            ast::Expr::Extend(ast::Extend {
+            ast::FileEntry::Extend(ast::Extend {
                 r#type: "google.protobuf.FieldOptions",
                 entries: vec![
                     ast::ExtendEntry::Comment(ast::Comment::single_line("// in extend")),
@@ -343,7 +353,7 @@ mod tests {
                     }),
                 ],
             }),
-            ast::Expr::Comment(ast::Comment::single_line("// at the bottom of the file")),
+            ast::FileEntry::Comment(ast::Comment::single_line("// at the bottom of the file")),
         ];
 
         assert_eq!(ast, target_ast);
@@ -353,8 +363,8 @@ mod tests {
     fn extensions() {
         let ast = parse_ast!("extensions.proto");
         let target_ast = vec![
-            ast::Expr::Syntax("proto2"),
-            ast::Expr::Message(ast::Message {
+            ast::FileEntry::Syntax("proto2"),
+            ast::FileEntry::Message(ast::Message {
                 ident: "Message",
                 entries: vec![ast::MessageEntry::Extensions(vec![
                     ast::Range::from(1),
@@ -371,8 +381,8 @@ mod tests {
     fn required() {
         let ast = parse_ast!("required.proto");
         let target_ast = vec![
-            ast::Expr::Syntax("proto2"),
-            ast::Expr::Message(ast::Message {
+            ast::FileEntry::Syntax("proto2"),
+            ast::FileEntry::Message(ast::Message {
                 ident: "Message",
                 entries: vec![ast::MessageEntry::Field(ast::Field {
                     modifier: ast::FieldModifier::Required,
@@ -391,24 +401,24 @@ mod tests {
     fn keywords() {
         let ast = parse_ast!("keywords.proto");
         let target_ast = vec![
-            ast::Expr::Syntax("proto3"),
-            ast::Expr::Message(ast::Message::empty("Ident")),
-            ast::Expr::Message(ast::Message::empty("to")),
-            ast::Expr::Message(ast::Message::empty("max")),
-            ast::Expr::Message(ast::Message::empty("syntax")),
-            ast::Expr::Message(ast::Message::empty("option")),
-            ast::Expr::Message(ast::Message::empty("package")),
-            ast::Expr::Message(ast::Message::empty("import")),
-            ast::Expr::Message(ast::Message::empty("message")),
-            ast::Expr::Message(ast::Message::empty("extend")),
-            ast::Expr::Message(ast::Message::empty("enum")),
-            ast::Expr::Message(ast::Message::empty("reserved")),
-            ast::Expr::Message(ast::Message::empty("extensions")),
-            ast::Expr::Message(ast::Message::empty("optional")),
-            ast::Expr::Message(ast::Message::empty("required")),
-            ast::Expr::Message(ast::Message::empty("repeated")),
-            ast::Expr::Message(ast::Message::empty("map")),
-            ast::Expr::Message(ast::Message {
+            ast::FileEntry::Syntax("proto3"),
+            ast::FileEntry::Message(ast::Message::empty("Ident")),
+            ast::FileEntry::Message(ast::Message::empty("to")),
+            ast::FileEntry::Message(ast::Message::empty("max")),
+            ast::FileEntry::Message(ast::Message::empty("syntax")),
+            ast::FileEntry::Message(ast::Message::empty("option")),
+            ast::FileEntry::Message(ast::Message::empty("package")),
+            ast::FileEntry::Message(ast::Message::empty("import")),
+            ast::FileEntry::Message(ast::Message::empty("message")),
+            ast::FileEntry::Message(ast::Message::empty("extend")),
+            ast::FileEntry::Message(ast::Message::empty("enum")),
+            ast::FileEntry::Message(ast::Message::empty("reserved")),
+            ast::FileEntry::Message(ast::Message::empty("extensions")),
+            ast::FileEntry::Message(ast::Message::empty("optional")),
+            ast::FileEntry::Message(ast::Message::empty("required")),
+            ast::FileEntry::Message(ast::Message::empty("repeated")),
+            ast::FileEntry::Message(ast::Message::empty("map")),
+            ast::FileEntry::Message(ast::Message {
                 ident: "Message",
                 entries: vec![
                     ast::MessageEntry::Field(ast::Field::basic("bool", "var1", 1)),

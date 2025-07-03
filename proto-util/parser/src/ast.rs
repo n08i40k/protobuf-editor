@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-pub type GlobalScope<'a> = Vec<Expr<'a>>;
+pub type File<'a> = Vec<FileEntry<'a>>;
 
 #[derive(Debug, PartialEq)]
 pub enum RangeEnd {
@@ -90,7 +90,7 @@ pub enum CommentType {
 }
 
 #[derive(Debug, PartialEq)]
-pub enum Expr<'a> {
+pub enum FileEntry<'a> {
     Comment(Comment<'a>),
     Syntax(&'a str),
     Package(&'a str),
@@ -101,7 +101,6 @@ pub enum Expr<'a> {
     Enum(Enum<'a>),
 }
 
-/// Message
 #[derive(Debug, PartialEq)]
 pub struct Message<'a> {
     pub ident: &'a str,
@@ -162,7 +161,6 @@ pub enum FieldModifier {
     Repeated,
 }
 
-/// Extend
 #[derive(Debug, PartialEq)]
 pub struct Extend<'a> {
     pub r#type: &'a str,

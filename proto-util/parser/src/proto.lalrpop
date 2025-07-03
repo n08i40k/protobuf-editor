@@ -111,101 +111,99 @@ Range: ast::Range = {
     <start:Integer> "to" <end:"max">    => ast::Range::from((start, ())),
 };
 
+
+// Lists
+
+// value, value, value
 CommaList<T>: Vec<T> = <first:T> <mut rest:(Comma <T>)*> => { rest.insert(0, first); rest };
+
+// value, value, value[,]
 TrailingCommaList<T>: Vec<T> = <first:T> <mut rest:(Comma <T>)*> Comma? => { rest.insert(0, first); rest };
 
-ExpressionList<T>: Vec<T> = <v:(<T> Semicolon?)*> => <>;
+// stmt[;] stmt[;] stmt[;]
+StmtList<T>: Vec<T> = <v:(<T> Semicolon?)*> => <>;
 
-Block<K, I, E> = K <I> OpenBrace <ExpressionList<E>> CloseBrace;
+// <keyword:K> <ident-type:I> {
+//     <stmt:E>[;]
+//     <stmt:E>[;]
+//     <stmt:E>[;]
+// }
+Block<K, I, E> = K <I> OpenBrace <StmtList<E>> CloseBrace;
 
-// proto
 
-pub GlobalScope: ast::GlobalScope<'input> = ExpressionList<Expr>;
+// Protocol Buffers file AST
 
-pub Expr: ast::Expr<'input> = {
-    Comment => ast::Expr::Comment(<>),
+pub File: ast::File<'input> = StmtList<FileEntryStmt>;
 
-    // syntax = "proto3";
-    "syntax" Eq <String> Semicolon => ast::Expr::Syntax(<>),
-
-    // package aa.AA;
-    "package" <Path> Semicolon => ast::Expr::Package(<>),
-
-    // import "xxx/yyy/zzz.proto";
-    "import" <String> Semicolon => ast::Expr::Import(<>),
-
-    // option java_package = "xx.yy.zz";
-    OptionLine => ast::Expr::Option(<>),
-
-    // message [ident] { ... }
-    Message => ast::Expr::Message(<>),
-
-    // extend [ident] { ... }
-    Extend => ast::Expr::Extend(<>),
-
-    // enum [ident] { ... }
-    Enum => ast::Expr::Enum(<>),
+FileEntryStmt: ast::FileEntry<'input> = {
+    CommentStmt                         => ast::FileEntry::Comment(<>),
+       "syntax" Eq   <String> Semicolon => ast::FileEntry::Syntax(<>),
+      "package"        <Path> Semicolon => ast::FileEntry::Package(<>),
+       "import"      <String> Semicolon => ast::FileEntry::Import(<>),
+     OptionStmt                         => ast::FileEntry::Option(<>),
+    MessageStmt                         => ast::FileEntry::Message(<>),
+     ExtendStmt                         => ast::FileEntry::Extend(<>),
+       EnumStmt                         => ast::FileEntry::Enum(<>),
 };
 
 
 // comment
 
-Comment: ast::Comment<'input> = {
+CommentStmt: ast::Comment<'input> = {
     SingleLineComment => ast::Comment::single_line(<>),
-    MultiLineComment => ast::Comment::multi_line(<>),
+     MultiLineComment => ast::Comment::multi_line(<>),
 };
 
 
 // option
 
-Option: ast::Option<'input> = <key:OptionKey> Eq <value:MapValue> => ast::Option { key, value };
+OptionStmt = "option" <Option> Semicolon;
+OptionListStmt: Vec<ast::Option<'input>> = <(OpenBracket <CommaList<Option>> CloseBracket)?> => <>.unwrap_or(vec![]);
+
+Option: ast::Option<'input>= <key:OptionKey> Eq <value:MapValue> => ast::Option { key, value };
 
 OptionKey: &'input str = {
     <l:@L> OpenPth LPath ClosePth <r:@R> => &input[l..r],
     Path,
 }
 
+MapValue: ast::MapValue<'input> = {
+    Boolean     => ast::MapValue::Boolean(<>),
+    Integer     => ast::MapValue::Integer(<>),
+    Ident       => ast::MapValue::Ident(<>),
+    String      => ast::MapValue::String(<>),
+    JSONLikeMap => ast::MapValue::Map(<>),
+};
+
 JSONLikeMap: ast::JSONLikeMap<'input>
     = OpenBrace <TrailingCommaList<(<Ident> Colon <MapValue>)>> CloseBrace
     => ast::JSONLikeMap::<'input>::from_iter(<>);
 
-MapValue: ast::MapValue<'input> = {
-    Boolean => ast::MapValue::Boolean(<>),
-    Integer => ast::MapValue::Integer(<>),
-    Ident => ast::MapValue::Ident(<>),
-    String => ast::MapValue::String(<>),
-    JSONLikeMap => ast::MapValue::Map(<>),
-};
-
-OptionLine = "option" <Option> Semicolon;
-EntryOptionList: Vec<ast::Option<'input>> = <(OpenBracket <CommaList<Option>> CloseBracket)?> => <>.unwrap_or(vec![]);
-
 
 // message [ident] { ... }
 
-pub Message: ast::Message<'input> = Block<"message", IdentLike, MessageEntry> => ast::Message { ident: <>.0, entries: <>.1 };
+MessageStmt: ast::Message<'input> = Block<"message", IdentLike, MessageEntry> => ast::Message { ident: <>.0, entries: <>.1 };
 
-pub MessageEntry: ast::MessageEntry<'input> = {
-    Comment => ast::MessageEntry::Comment(<>),
-    OptionLine => ast::MessageEntry::Option(<>),
-    Message => ast::MessageEntry::Message(<>),
-    Extend => ast::MessageEntry::Extend(<>),
-    Enum => ast::MessageEntry::Enum(<>),
-    Field => ast::MessageEntry::Field(<>),
-    ReservedIndices => ast::MessageEntry::ReservedIndices(<>),
-    ReservedIdents => ast::MessageEntry::ReservedIdents(<>),
-    Extensions => ast::MessageEntry::Extensions(<>),
+MessageEntry: ast::MessageEntry<'input> = {
+            CommentStmt => ast::MessageEntry::Comment(<>),
+             OptionStmt => ast::MessageEntry::Option(<>),
+            MessageStmt => ast::MessageEntry::Message(<>),
+               EnumStmt => ast::MessageEntry::Enum(<>),
+             ExtendStmt => ast::MessageEntry::Extend(<>),
+              FieldStmt => ast::MessageEntry::Field(<>),
+    ReservedIndicesStmt => ast::MessageEntry::ReservedIndices(<>),
+     ReservedIdentsStmt => ast::MessageEntry::ReservedIdents(<>),
+         ExtensionsStmt => ast::MessageEntry::Extensions(<>),
 };
 
-
-// [optional | repeated] [type] [ident] = [index];
-pub Field: ast::Field<'input> = {
+// [mod] [type] [ident] = [index];
+FieldStmt: ast::Field<'input> = {
     <modifier:FieldModifier>
 
-    <r#type:UnsafeFieldType>    <ident:IdentLike> Eq <index:Integer> <options:EntryOptionList> Semicolon
+    <r#type:UnsafeFieldType>    <ident:IdentLike> Eq <index:Integer> <options:OptionListStmt> Semicolon
         => ast::Field { modifier, r#type, ident, index, options },
 
-    <r#type:SafeFieldType>      <ident:IdentLike> Eq <index:Integer> <options:EntryOptionList> Semicolon
+    <r#type:SafeFieldType>      <ident:IdentLike> Eq <index:Integer> <options:OptionListStmt> Semicolon
         => ast::Field { modifier: ast::FieldModifier::None, r#type, ident, index, options },
 };
 
@@ -214,7 +212,6 @@ FieldModifier: ast::FieldModifier = {
     "required" => ast::FieldModifier::Required,
     "repeated" => ast::FieldModifier::Repeated,
 };
-
 
 //           Use-case              SafeFieldType  UnsafeFieldType
 // [mod]    path            ...         N/A             +
@@ -231,36 +228,41 @@ FieldModifier: ast::FieldModifier = {
 MapFieldType: &'input str = <l:@L> "map" OpenAngle Ident Comma IdentLike CloseAngle <r:@R> => &input[l..r];
 
 
-// extensions 1000 to max;
-
-Extensions: Vec<ast::Range> = "extensions" <CommaList<Range>> Semicolon;
-
-
 // reserved 2, 3, 4 to 6;
 
-ReservedIndices: Vec<ast::Range> = "reserved" <CommaList<Range>> Semicolon;
+ReservedIndicesStmt: Vec<ast::Range> = "reserved" <CommaList<Range>> Semicolon;
 
 
 // reserved "xd", "xdd";
 
-ReservedIdents: Vec<&'input str> = "reserved" <CommaList<String>> Semicolon;
+ReservedIdentsStmt: Vec<&'input str> = "reserved" <CommaList<String>> Semicolon;
+
+
+// extensions 1000 to max;
+
+ExtensionsStmt: Vec<ast::Range> = "extensions" <CommaList<Range>> Semicolon;
 
 
 // extend [ident] { ... }
 
-pub Extend: ast::Extend<'input> = Block<"extend", LPath, ExtendEntry> => ast::Extend { r#type: <>.0, entries: <>.1 };
+ExtendStmt: ast::Extend<'input> = Block<"extend", LPath, ExtendEntry> => ast::Extend { r#type: <>.0, entries: <>.1 };
 
-pub ExtendEntry: ast::ExtendEntry<'input> = {
-    Comment => ast::ExtendEntry::Comment(<>),
-    Field => ast::ExtendEntry::Field(<>),
+ExtendEntry: ast::ExtendEntry<'input> = {
+    CommentStmt => ast::ExtendEntry::Comment(<>),
+    FieldStmt => ast::ExtendEntry::Field(<>),
 };
+
 
 // enum [ident] { ... }
 
-pub Enum: ast::Enum<'input> = Block<"enum", IdentLike, EnumEntry> => ast::Enum { ident: <>.0, entries: <>.1 };
+EnumStmt: ast::Enum<'input> = Block<"enum", IdentLike, EnumEntry> => ast::Enum { ident: <>.0, entries: <>.1 };
 
-pub EnumEntry: ast::EnumEntry<'input> = {
-    Comment => ast::EnumEntry::Comment(<>),
-    OptionLine => ast::EnumEntry::Option(<>),
-    <ident:IdentLike> Eq <value:Integer> <options:EntryOptionList> Semicolon => ast::EnumEntry::Pair{ ident, value, options },
+EnumEntry: ast::EnumEntry<'input> = {
+    CommentStmt => ast::EnumEntry::Comment(<>),
+    OptionStmt => ast::EnumEntry::Option(<>),
+    EnumPairStmt,
 };
+
+EnumPairStmt: ast::EnumEntry<'input>
+    = <ident:IdentLike> Eq <value:Integer> <options:OptionListStmt> Semicolon
+    => ast::EnumEntry::Pair{ ident, value, options };
