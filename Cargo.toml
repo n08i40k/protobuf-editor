@@ -1,3 +1,6 @@
+[workspace]
+members = [".", "proto-util", "proto-util/parser"]
+
 [package]
 name = "protobuf-editor"
 version = "0.1.0"
