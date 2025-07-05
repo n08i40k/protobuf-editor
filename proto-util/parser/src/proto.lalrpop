@@ -129,7 +129,7 @@ CommaList<T>: Vec<T> = <first:T> <mut rest:(Comma <T>)*> => { rest.insert(0, fir
 TrailingCommaList<T>: Vec<T> = <first:T> <mut rest:(Comma <T>)*> Comma? => { rest.insert(0, first); rest };
 
 // stmt[;] stmt[;] stmt[;]
-StmtList<T>: Vec<T> = <v:(<T> Semicolon?)*> => <>;
+StmtList<T>: Vec<T> = <v:(<T> Semicolon*)*> => <>;
 
 // <keyword:K> <ident-type:I> {
 //     <stmt:E>[;]
