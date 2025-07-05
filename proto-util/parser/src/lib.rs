@@ -468,4 +468,52 @@ mod tests {
 
         assert_eq!(ast, target_ast);
     }
+
+    #[test]
+    fn service() {
+        let ast = parse_ast!("service.proto");
+        let target_ast = vec![
+            ast::FileEntry::Syntax("proto3"),
+            ast::FileEntry::Service(ast::Service {
+                ident: "Service",
+                entries: vec![
+                    ast::ServiceEntry::Option(ast::Option {
+                        key: "uninterpreted_option",
+                        value: ast::MapValue::Map(ast::JSONLikeMap::from([(
+                            "string_value",
+                            ast::MapValue::String(""),
+                        )])),
+                    }),
+                    ast::ServiceEntry::Rpc(ast::Rpc {
+                        ident: "RPC1",
+                        request: "Request",
+                        reply: "Reply",
+                        stream: ast::RpcStream::None,
+                    }),
+                    ast::ServiceEntry::Rpc(ast::Rpc {
+                        ident: "RPC2",
+                        request: "Request",
+                        reply: "Reply",
+                        stream: ast::RpcStream::ServerBound,
+                    }),
+                    ast::ServiceEntry::Rpc(ast::Rpc {
+                        ident: "RPC3",
+                        request: "Request",
+                        reply: "Reply",
+                        stream: ast::RpcStream::ClientBound,
+                    }),
+                    ast::ServiceEntry::Rpc(ast::Rpc {
+                        ident: "RPC4",
+                        request: "Request",
+                        reply: "Reply",
+                        stream: ast::RpcStream::Bidirectional,
+                    }),
+                ],
+            }),
+            ast::FileEntry::Message(ast::Message::empty("Request")),
+            ast::FileEntry::Message(ast::Message::empty("Reply")),
+        ];
+
+        assert_eq!(ast, target_ast);
+    }
 }

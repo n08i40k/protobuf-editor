@@ -37,6 +37,10 @@ extern {
         "option" => lexer::Token::Option,
         "package" => lexer::Token::Package,
         "import" => lexer::Token::Import,
+        "service" => lexer::Token::Service,
+        "rpc" => lexer::Token::Rpc,
+        "stream" => lexer::Token::Stream,
+        "returns" => lexer::Token::Returns,
         "message" => lexer::Token::Message,
         "oneof" => lexer::Token::OneOf,
         "extend" => lexer::Token::Extend,
@@ -59,6 +63,10 @@ Keyword: &'input str = {
     "syntax"     => "syntax",
     "package"    => "package",
     "import"     => "import",
+    "service"    => "service",
+    "rpc"        => "rpc",
+    "stream"     => "stream",
+    "returns"    => "returns",
     "option"     => "option",
     "message"    => "message",
     "oneof"      => "oneof",
@@ -79,6 +87,33 @@ KeywordAsFieldType: &'input str = {
     "syntax"  => "syntax",
     "package" => "package",
     "import"  => "import",
+    "service" => "service",
+    "rpc"     => "rpc",
+    "stream"  => "stream",
+    "returns" => "returns",
+};
+
+#[inline]
+KeywordAsRpcMessageType: &'input str = {
+    "to"         => "to",
+    "max"        => "max",
+    "syntax"     => "syntax",
+    "package"    => "package",
+    "import"     => "import",
+    "service"    => "service",
+    "rpc"        => "rpc",
+    "returns"    => "returns",
+    "option"     => "option",
+    "message"    => "message",
+    "oneof"      => "oneof",
+    "extend"     => "extend",
+    "enum"       => "enum",
+    "reserved"   => "reserved",
+    "extensions" => "extensions",
+    "optional" => "optional",
+    "required" => "required",
+    "repeated" => "repeated",
+    "map" => "map",
 };
 
 #[inline]
@@ -108,7 +143,7 @@ ExactPath<E>: &'input str = <l:@L> E (Period IdentLike)* <r:@R> => &input[l..r];
 //   keyword.ident    ++
 // . keyword.ident           ++
 #[inline] UnsafeLPath : &'input str = UnsafePath;
-          SafeLPath : &'input str = {
+            SafeLPath : &'input str = {
     <l:@L> Period   UnsafePath  <r:@R> => &input[l..r],
     <l:@L> Period?  SafePath    <r:@R> => &input[l..r],
 };
@@ -149,6 +184,7 @@ FileEntryStmt: ast::FileEntry<'input> = {
       "package"        <Path> Semicolon => ast::FileEntry::Package(<>),
        "import"      <String> Semicolon => ast::FileEntry::Import(<>),
      OptionStmt                         => ast::FileEntry::Option(<>),
+    ServiceStmt                         => ast::FileEntry::Service(<>),
     MessageStmt                         => ast::FileEntry::Message(<>),
      ExtendStmt                         => ast::FileEntry::Extend(<>),
        EnumStmt                         => ast::FileEntry::Enum(<>),
@@ -186,6 +222,39 @@ MapValue: ast::MapValue<'input> = {
 JSONLikeMap: ast::JSONLikeMap<'input>
     = OpenBrace <TrailingCommaList<(<Ident> Colon <MapValue>)>> CloseBrace
     => ast::JSONLikeMap::<'input>::from_iter(<>);
+
+
+// service [ident] { ... }
+
+ServiceStmt: ast::Service<'input> = Block<"service", IdentLike, ServiceEntry> => ast::Service { ident: <>.0, entries: <>.1 };
+
+ServiceEntry: ast::ServiceEntry<'input> = {
+            CommentStmt => ast::ServiceEntry::Comment(<>),
+             OptionStmt => ast::ServiceEntry::Option(<>),
+                RpcStmt => ast::ServiceEntry::Rpc(<>),
+};
+
+
+// rpc [ident] ([stream]? [request]) returns ([stream]? [reply])[{} | ; | {};]
+
+RpcStmt: ast::Rpc<'input> = {
+    "rpc" <ident:IdentLike>
+        OpenPth <request:StreamIdentLike> ClosePth
+        "returns"
+        OpenPth <reply:StreamIdentLike> ClosePth
+        RpcClose
+        => ast::Rpc { ident, request: request.1, reply: reply.1, stream: ast::RpcStream::new(request.0, reply.0) }
+        //=> ast::Rpc { ident, request: request.1, reply: reply.1, stream: ast::RpcStream::new(request.0, reply.0) }
+        //=> ast::Rpc { ident, request, reply, stream: ast::RpcStream::new(s.is_some(), c.is_some()) }
+};
+
+StreamIdentLike: (bool, &'input str) = {
+    "stream" <LPath>                    => (true, <>),
+    SafeLPath                           => (false, <>),
+    ExactPath<KeywordAsRpcMessageType>  => (false, <>),
+};
+
+RpcClose: () = { Semicolon => (), OpenBrace CloseBrace => () };
 
 
 // message [ident] { ... }

@@ -96,9 +96,53 @@ pub enum FileEntry<'a> {
     Package(&'a str),
     Import(&'a str),
     Option(Option<'a>),
+    Service(Service<'a>),
     Message(Message<'a>),
     Extend(Extend<'a>),
     Enum(Enum<'a>),
+}
+
+#[derive(Debug, PartialEq)]
+pub struct Service<'a> {
+    pub ident: &'a str,
+    pub entries: Vec<ServiceEntry<'a>>,
+}
+
+#[derive(Debug, PartialEq)]
+pub enum ServiceEntry<'a> {
+    Comment(Comment<'a>),
+    Option(Option<'a>),
+
+    Rpc(Rpc<'a>),
+}
+
+#[derive(Debug, PartialEq)]
+pub struct Rpc<'a> {
+    pub ident: &'a str,
+
+    pub request: &'a str,
+    pub reply: &'a str,
+
+    pub stream: RpcStream,
+}
+
+#[derive(Debug, PartialEq)]
+pub enum RpcStream {
+    None,
+    ClientBound,
+    ServerBound,
+    Bidirectional,
+}
+
+impl RpcStream {
+    pub fn new(server_bound: bool, client_bound: bool) -> Self {
+        match (server_bound, client_bound) {
+            (true, true) => Self::Bidirectional,
+            (true, false) => Self::ServerBound,
+            (false, true) => Self::ClientBound,
+            _ => Self::None,
+        }
+    }
 }
 
 #[derive(Debug, PartialEq)]
@@ -167,7 +211,6 @@ pub enum OneOfEntry<'a> {
 
     Field(Field<'a>),
 }
-
 
 #[derive(Debug, PartialEq)]
 pub enum FieldModifier {

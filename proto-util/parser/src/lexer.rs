@@ -136,6 +136,18 @@ pub enum Token<'a> {
     #[token("import")]
     Import,
 
+    #[token("service")]
+    Service,
+
+    #[token("rpc")]
+    Rpc,
+
+    #[token("stream")]
+    Stream,
+
+    #[token("returns")]
+    Returns,
+
     #[token("message")]
     Message,
 
