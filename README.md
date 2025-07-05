@@ -5,12 +5,12 @@
 
 Ниже описан прогресс реализации проекта:
 
-* [ ] Парсер
+* [x] Парсер
     - [x] Базовый синтаксис (идентификаторы, строки, keywords и т.д)
     - [x] Захват комментариев (`// text` и `/* text */`)
-    - [ ] Сервисы (`service`)
-      - [ ] Базовые RPC (`rpc Ident (Request) returns (Reply)`)
-      - [ ] Потоки (`rpc Ident (stream Request) returns (stream Reply)`)
+    - [x] Сервисы (`service`)
+      - [x] Базовые RPC (`rpc Ident (Request) returns (Reply)`)
+      - [x] Потоки (`rpc Ident (stream Request) returns (stream Reply)`)
     - [x] Сообщения (`message`)
         - [x] Поля
             - [x] Модификаторы (`optional`, `required`, `repeated`)
