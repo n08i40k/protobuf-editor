@@ -403,7 +403,10 @@ mod tests {
         let target_ast = vec![
             ast::FileEntry::Syntax("proto3"),
             ast::FileEntry::Message(ast::Message::empty("Ident")),
-            ast::FileEntry::Message(ast::Message::empty("to")),
+            ast::FileEntry::Message(ast::Message {
+                ident: "to",
+                entries: vec![ast::MessageEntry::Message(ast::Message::empty("inner"))],
+            }),
             ast::FileEntry::Message(ast::Message::empty("max")),
             ast::FileEntry::Message(ast::Message::empty("syntax")),
             ast::FileEntry::Message(ast::Message::empty("option")),
@@ -425,16 +428,18 @@ mod tests {
                     ast::MessageEntry::Field(ast::Field::basic("bool", "var1", 1)),
                     ast::MessageEntry::Field(ast::Field::basic("Ident", "var2", 2)),
                     ast::MessageEntry::Field(ast::Field::basic("to", "var3", 3)),
-                    ast::MessageEntry::Field(ast::Field::basic("max", "var4", 4)),
-                    ast::MessageEntry::Field(ast::Field::basic("syntax", "var5", 5)),
-                    ast::MessageEntry::Field(ast::Field::basic("package", "var6", 6)),
-                    ast::MessageEntry::Field(ast::Field::basic("import", "var7", 7)),
+                    ast::MessageEntry::Field(ast::Field::basic("to.inner", "var4", 4)),
+                    ast::MessageEntry::Field(ast::Field::basic("max", "var5", 5)),
+                    ast::MessageEntry::Field(ast::Field::basic("syntax", "var6", 6)),
+                    ast::MessageEntry::Field(ast::Field::basic("package", "var7", 7)),
+                    ast::MessageEntry::Field(ast::Field::basic("import", "var8", 8)),
                 ],
             }),
         ];
 
         assert_eq!(ast, target_ast);
     }
+
     #[test]
     fn oneof() {
         let ast = parse_ast!("oneof.proto");

@@ -53,29 +53,32 @@ extern {
 
 // Protocol Buffers 2 and 3 keywords.
 
-#[inline]
-Keyword: &'input str = { FieldTypeKeyword, NonFieldTypeKeyword };
-
-FieldTypeKeyword: &'input str = {
-    "to" => "to",
-    "max" => "max",
-    "syntax" => "syntax",
-    "package" => "package",
-    "import" => "import",
+Keyword: &'input str = {
+    "to"         => "to",
+    "max"        => "max",
+    "syntax"     => "syntax",
+    "package"    => "package",
+    "import"     => "import",
+    "option"     => "option",
+    "message"    => "message",
+    "oneof"      => "oneof",
+    "extend"     => "extend",
+    "enum"       => "enum",
+    "reserved"   => "reserved",
+    "extensions" => "extensions",
+    "optional"   => "optional",
+    "required"   => "required",
+    "repeated"   => "repeated",
+    "map"        => "map",
 };
 
-NonFieldTypeKeyword: &'input str = {
-    "option" => "option",
-    "message" => "message",
-    "oneof" => "oneof",
-    "extend" => "extend",
-    "enum" => "enum",
-    "reserved" => "reserved",
-    "extensions" => "extensions",
-    "optional" => "optional",
-    "required" => "required",
-    "repeated" => "repeated",
-    "map" => "map",
+#[inline]
+KeywordAsFieldType: &'input str = {
+    "to"      => "to",
+    "max"     => "max",
+    "syntax"  => "syntax",
+    "package" => "package",
+    "import"  => "import",
 };
 
 #[inline]
@@ -96,13 +99,16 @@ LPath = { SafeLPath, UnsafePath };
 UnsafePath: &'input str = <l:@L> Keyword  (Period IdentLike)* <r:@R> => &input[l..r];
   SafePath: &'input str = <l:@L> Ident    (Period IdentLike)* <r:@R> => &input[l..r];
 
+#[inline]
+ExactPath<E>: &'input str = <l:@L> E (Period IdentLike)* <r:@R> => &input[l..r];
+
 //                  Unsafe  Safe
 //    ident.ident            ++
 // .  ident.ident            ++
 //   keyword.ident    ++
 // . keyword.ident           ++
 #[inline] UnsafeLPath : &'input str = UnsafePath;
-            SafeLPath : &'input str = {
+          SafeLPath : &'input str = {
     <l:@L> Period   UnsafePath  <r:@R> => &input[l..r],
     <l:@L> Period?  SafePath    <r:@R> => &input[l..r],
 };
@@ -201,13 +207,28 @@ MessageEntry: ast::MessageEntry<'input> = {
 
 // [mod] [type] [ident] = [index];
 FieldStmt: ast::Field<'input> = {
-    <modifier:FieldModifier>
+    <mt:ModFieldType> <ident:IdentLike> Eq <index:Integer> <options:OptionListStmt> Semicolon
+        => ast::Field { modifier: mt.0, r#type: mt.1, ident, index, options },
+};
 
-    <r#type:UnsafeFieldType>    <ident:IdentLike> Eq <index:Integer> <options:OptionListStmt> Semicolon
-        => ast::Field { modifier, r#type, ident, index, options },
+ModFieldType: (ast::FieldModifier, &'input str) = {
+    // [modifier]? map<k, v>
+    <modifier:FieldModifier?> <r#type:MapFieldType> => (modifier.unwrap_or(ast::FieldModifier::None), r#type),
 
-    <r#type:SafeFieldType>      <ident:IdentLike> Eq <index:Integer> <options:OptionListStmt> Semicolon
-        => ast::Field { modifier: ast::FieldModifier::None, r#type, ident, index, options },
+    // [modifier]  ident[.any]?
+    // [modifier] .ident[.any]?
+    // [modifier]  kw[.any]?
+    // [modifier] .kw[.any]?
+    <modifier:FieldModifier> <r#type:LPath>         => (modifier, r#type),
+
+    //  ident[.any]?
+    // .ident[.any]?
+    // .kw[.any]?
+    SafeLPath                                       => (ast::FieldModifier::None, <>),
+
+    // kw*[.any]?
+    // * - only "allowed" keywords (not used as message entry first keyword. message, enum, option, etc.)
+    ExactPath<KeywordAsFieldType>                => (ast::FieldModifier::None, <>),
 };
 
 FieldModifier: ast::FieldModifier = {
@@ -215,18 +236,6 @@ FieldModifier: ast::FieldModifier = {
     "required" => ast::FieldModifier::Required,
     "repeated" => ast::FieldModifier::Repeated,
 };
-
-//           Use-case              SafeFieldType  UnsafeFieldType
-// [mod]    path            ...         N/A             +
-// [mod]   .path            ...         N/A             +
-// [mod]    keyword.path    ...         N/A             +
-// [mod]   .keyword.path    ...         N/A             +
-//          path            ...          +             N/A
-//         .path            ...          +             N/A
-//          keyword.path    ...                        N/A
-//         .keyword.path    ...          +             N/A
-#[inline] SafeFieldType   : &'input str = { MapFieldType, SafeLPath, FieldTypeKeyword   };
-#[inline] UnsafeFieldType : &'input str = { MapFieldType, LPath                         };
 
 MapFieldType: &'input str = <l:@L> "map" OpenAngle Ident Comma IdentLike CloseAngle <r:@R> => &input[l..r];
 
