@@ -410,6 +410,7 @@ mod tests {
             ast::FileEntry::Message(ast::Message::empty("package")),
             ast::FileEntry::Message(ast::Message::empty("import")),
             ast::FileEntry::Message(ast::Message::empty("message")),
+            ast::FileEntry::Message(ast::Message::empty("oneof")),
             ast::FileEntry::Message(ast::Message::empty("extend")),
             ast::FileEntry::Message(ast::Message::empty("enum")),
             ast::FileEntry::Message(ast::Message::empty("reserved")),
@@ -428,6 +429,34 @@ mod tests {
                     ast::MessageEntry::Field(ast::Field::basic("syntax", "var5", 5)),
                     ast::MessageEntry::Field(ast::Field::basic("package", "var6", 6)),
                     ast::MessageEntry::Field(ast::Field::basic("import", "var7", 7)),
+                ],
+            }),
+        ];
+
+        assert_eq!(ast, target_ast);
+    }
+    #[test]
+    fn oneof() {
+        let ast = parse_ast!("oneof.proto");
+        let target_ast = vec![
+            ast::FileEntry::Syntax("proto3"),
+            ast::FileEntry::Message(ast::Message {
+                ident: "Message",
+                entries: vec![
+                    ast::MessageEntry::OneOf(ast::OneOf {
+                        ident: "OneOf",
+                        entries: vec![
+                            ast::OneOfEntry::Option(ast::Option {
+                                key: "uninterpreted_option",
+                                value: ast::MapValue::Map(ast::JSONLikeMap::from([(
+                                    "string_value",
+                                    ast::MapValue::String(""),
+                                )])),
+                            }),
+                            ast::OneOfEntry::Field(ast::Field::basic("bool", "oneof_var", 1)),
+                        ],
+                    }),
+                    ast::MessageEntry::Field(ast::Field::basic("bool", "message_var", 2)),
                 ],
             }),
         ];

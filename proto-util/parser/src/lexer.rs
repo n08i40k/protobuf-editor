@@ -139,6 +139,9 @@ pub enum Token<'a> {
     #[token("message")]
     Message,
 
+    #[token("oneof")]
+    OneOf,
+
     #[token("extend")]
     Extend,
 

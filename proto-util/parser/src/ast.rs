@@ -122,6 +122,7 @@ pub enum MessageEntry<'a> {
     Option(Option<'a>),
 
     Field(Field<'a>),
+    OneOf(OneOf<'a>),
     Message(Message<'a>),
     Extend(Extend<'a>),
     Enum(Enum<'a>),
@@ -152,6 +153,21 @@ impl<'a> Field<'a> {
         }
     }
 }
+
+#[derive(Debug, PartialEq)]
+pub struct OneOf<'a> {
+    pub ident: &'a str,
+    pub entries: Vec<OneOfEntry<'a>>,
+}
+
+#[derive(Debug, PartialEq)]
+pub enum OneOfEntry<'a> {
+    Comment(Comment<'a>),
+    Option(Option<'a>),
+
+    Field(Field<'a>),
+}
+
 
 #[derive(Debug, PartialEq)]
 pub enum FieldModifier {

@@ -9,6 +9,7 @@ message option {}
 message package {}
 message import {}
 message message {}
+message oneof {}
 message extend {}
 message enum {}
 message reserved {}

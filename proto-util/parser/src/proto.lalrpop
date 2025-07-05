@@ -38,6 +38,7 @@ extern {
         "package" => lexer::Token::Package,
         "import" => lexer::Token::Import,
         "message" => lexer::Token::Message,
+        "oneof" => lexer::Token::OneOf,
         "extend" => lexer::Token::Extend,
         "enum" => lexer::Token::Enum,
         "reserved" => lexer::Token::Reserved,
@@ -66,6 +67,7 @@ FieldTypeKeyword: &'input str = {
 NonFieldTypeKeyword: &'input str = {
     "option" => "option",
     "message" => "message",
+    "oneof" => "oneof",
     "extend" => "extend",
     "enum" => "enum",
     "reserved" => "reserved",
@@ -191,6 +193,7 @@ MessageEntry: ast::MessageEntry<'input> = {
                EnumStmt => ast::MessageEntry::Enum(<>),
              ExtendStmt => ast::MessageEntry::Extend(<>),
               FieldStmt => ast::MessageEntry::Field(<>),
+              OneOfStmt => ast::MessageEntry::OneOf(<>),
     ReservedIndicesStmt => ast::MessageEntry::ReservedIndices(<>),
      ReservedIdentsStmt => ast::MessageEntry::ReservedIdents(<>),
          ExtensionsStmt => ast::MessageEntry::Extensions(<>),
@@ -243,13 +246,24 @@ ReservedIdentsStmt: Vec<&'input str> = "reserved" <CommaList<String>> Semicolon;
 ExtensionsStmt: Vec<ast::Range> = "extensions" <CommaList<Range>> Semicolon;
 
 
+// oneof [ident] { ... }
+
+OneOfStmt: ast::OneOf<'input> = Block<"oneof", IdentLike, OneOfEntry> => ast::OneOf { ident: <>.0, entries: <>.1 };
+
+OneOfEntry: ast::OneOfEntry<'input> = {
+    CommentStmt => ast::OneOfEntry::Comment(<>),
+     OptionStmt => ast::OneOfEntry::Option(<>),
+      FieldStmt => ast::OneOfEntry::Field(<>),
+};
+
+
 // extend [ident] { ... }
 
 ExtendStmt: ast::Extend<'input> = Block<"extend", LPath, ExtendEntry> => ast::Extend { r#type: <>.0, entries: <>.1 };
 
 ExtendEntry: ast::ExtendEntry<'input> = {
     CommentStmt => ast::ExtendEntry::Comment(<>),
-    FieldStmt => ast::ExtendEntry::Field(<>),
+      FieldStmt => ast::ExtendEntry::Field(<>),
 };
 
 
@@ -258,8 +272,8 @@ ExtendEntry: ast::ExtendEntry<'input> = {
 EnumStmt: ast::Enum<'input> = Block<"enum", IdentLike, EnumEntry> => ast::Enum { ident: <>.0, entries: <>.1 };
 
 EnumEntry: ast::EnumEntry<'input> = {
-    CommentStmt => ast::EnumEntry::Comment(<>),
-    OptionStmt => ast::EnumEntry::Option(<>),
+     CommentStmt => ast::EnumEntry::Comment(<>),
+      OptionStmt => ast::EnumEntry::Option(<>),
     EnumPairStmt,
 };
 
